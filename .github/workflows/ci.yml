@@ -1,4 +1,4 @@
-name: CI
+name: CI/CD
 
 on:
   push:
@@ -37,3 +37,17 @@ jobs:
 
       - name: Push Docker image
         run: docker push niswanth13/devops-flask-app:latest
+
+      - name: Deploy to EC2
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            docker pull niswanth13/devops-flask-app:latest
+            docker stop devops-flask-container || true
+            docker rm devops-flask-container || true
+            docker run -d -p 80:5000 --name devops-flask-container niswanth13/devops-flask-app:latest
+            docker ps
